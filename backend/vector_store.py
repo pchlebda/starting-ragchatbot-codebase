@@ -108,6 +108,9 @@ class VectorStore:
             )
             
             if results['documents'][0] and results['metadatas'][0]:
+                # Reject if the best match distance is too large (no real match)
+                if results['distances'][0] and results['distances'][0][0] > 1.5:
+                    return None
                 # Return the title (which is now the ID)
                 return results['metadatas'][0][0]['title']
         except Exception as e:
@@ -151,8 +154,8 @@ class VectorStore:
             documents=[course_text],
             metadatas=[{
                 "title": course.title,
-                "instructor": course.instructor,
-                "course_link": course.course_link,
+                "instructor": course.instructor or "",
+                "course_link": course.course_link or "",
                 "lessons_json": json.dumps(lessons_metadata),  # Serialize as JSON string
                 "lesson_count": len(course.lessons)
             }],
@@ -167,7 +170,7 @@ class VectorStore:
         documents = [chunk.content for chunk in chunks]
         metadatas = [{
             "course_title": chunk.course_title,
-            "lesson_number": chunk.lesson_number,
+            "lesson_number": chunk.lesson_number if chunk.lesson_number is not None else -1,
             "chunk_index": chunk.chunk_index
         } for chunk in chunks]
         # Use title with chunk index for unique IDs
@@ -246,6 +249,26 @@ class VectorStore:
             print(f"Error getting course link: {e}")
             return None
     
+    def get_course_outline(self, course_name: str) -> Optional[Dict[str, Any]]:
+        """Get course outline (title, link, lessons) by course name using semantic matching"""
+        import json
+        course_title = self._resolve_course_name(course_name)
+        if not course_title:
+            return None
+        try:
+            results = self.course_catalog.get(ids=[course_title])
+            if results and 'metadatas' in results and results['metadatas']:
+                metadata = results['metadatas'][0]
+                lessons = json.loads(metadata.get('lessons_json', '[]'))
+                return {
+                    "title": metadata.get('title'),
+                    "course_link": metadata.get('course_link'),
+                    "lessons": lessons
+                }
+        except Exception as e:
+            print(f"Error getting course outline: {e}")
+        return None
+
     def get_lesson_link(self, course_title: str, lesson_number: int) -> Optional[str]:
         """Get lesson link for a given course title and lesson number"""
         import json

@@ -111,6 +111,30 @@ header h1 {
     margin-bottom: 0;
 }
 
+.new-chat-button {
+    display: block;
+    width: auto;
+    padding: 0.5rem 0;
+    background: none;
+    border: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.2s ease;
+    outline: none;
+}
+
+.new-chat-button:hover,
+.new-chat-button:focus {
+    color: var(--primary-color);
+}
+
 /* Main Chat Area */
 .chat-main {
     flex: 1;
@@ -241,8 +265,40 @@ header h1 {
 }
 
 .sources-content {
-    padding: 0 0.5rem 0.25rem 1.5rem;
+    padding: 0.25rem 0.5rem 0.25rem 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.sources-content a {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    background: rgba(37, 99, 235, 0.15);
+    border: 1px solid rgba(37, 99, 235, 0.35);
+    border-radius: 999px;
+    color: #93c5fd;
+    font-size: 0.72rem;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.sources-content a:hover {
+    background: rgba(37, 99, 235, 0.35);
+    border-color: rgba(37, 99, 235, 0.7);
+    color: #fff;
+}
+
+.sources-content span {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    background: rgba(148, 163, 184, 0.1);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 999px;
     color: var(--text-secondary);
+    font-size: 0.72rem;
+    white-space: nowrap;
 }
 
 /* Markdown formatting styles */

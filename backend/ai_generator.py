@@ -9,7 +9,7 @@ class AIGenerator:
 
 Search Tool Usage:
 - Use the search tool **only** for questions about specific course content or detailed educational materials
-- **One search per query maximum**
+- You may perform up to 2 sequential searches per query when results from the first search are needed to formulate the second.
 - Synthesize search results into accurate, fact-based responses
 - If search yields no results, state this clearly without offering alternatives
 
@@ -81,55 +81,75 @@ Provide only the direct answer to what was asked.
         
         # Handle tool execution if needed
         if response.stop_reason == "tool_use" and tool_manager:
-            return self._handle_tool_execution(response, api_params, tool_manager)
-        
+            return self._run_agentic_loop(
+                response, api_params["messages"], system_content, tools, tool_manager
+            )
+
         # Return direct response
         return response.content[0].text
-    
-    def _handle_tool_execution(self, initial_response, base_params: Dict[str, Any], tool_manager):
+
+    def _run_agentic_loop(
+        self,
+        response,
+        messages: List[Dict[str, Any]],
+        system: str,
+        tools: List,
+        tool_manager,
+        max_rounds: int = 2
+    ):
         """
-        Handle execution of tool calls and get follow-up response.
-        
+        Run an agentic loop allowing up to max_rounds of sequential tool use.
+
         Args:
-            initial_response: The response containing tool use requests
-            base_params: Base API parameters
+            response: The first tool_use response from generate_response
+            messages: Current message list (will be mutated)
+            system: System prompt string
+            tools: Tool definitions for intermediate calls
             tool_manager: Manager to execute tools
-            
+            max_rounds: Maximum number of tool-use rounds allowed
+
         Returns:
-            Final response text after tool execution
+            Final response text after tool execution and synthesis
         """
-        # Start with existing messages
-        messages = base_params["messages"].copy()
-        
-        # Add AI's tool use response
-        messages.append({"role": "assistant", "content": initial_response.content})
-        
-        # Execute all tool calls and collect results
-        tool_results = []
-        for content_block in initial_response.content:
-            if content_block.type == "tool_use":
-                tool_result = tool_manager.execute_tool(
-                    content_block.name, 
-                    **content_block.input
-                )
-                
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": content_block.id,
-                    "content": tool_result
-                })
-        
-        # Add tool results as single message
-        if tool_results:
+        messages = messages.copy()
+
+        for round_num in range(max_rounds):
+            # Append the assistant's tool-use response
+            messages.append({"role": "assistant", "content": response.content})
+
+            # Execute all tool calls and collect results
+            tool_results = []
+            for content_block in response.content:
+                if content_block.type == "tool_use":
+                    tool_result = tool_manager.execute_tool(
+                        content_block.name,
+                        **content_block.input
+                    )
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": content_block.id,
+                        "content": tool_result
+                    })
+
             messages.append({"role": "user", "content": tool_results})
-        
-        # Prepare final API call without tools
-        final_params = {
+
+            # If there are more rounds available, make an intermediate call with tools
+            if round_num < max_rounds - 1:
+                intermediate_response = self.client.messages.create(
+                    **self.base_params,
+                    messages=messages,
+                    system=system,
+                    tools=tools,
+                    tool_choice={"type": "auto"}
+                )
+                if intermediate_response.stop_reason != "tool_use":
+                    return intermediate_response.content[0].text
+                response = intermediate_response
+
+        # Final synthesis call — no tools
+        final_response = self.client.messages.create(
             **self.base_params,
-            "messages": messages,
-            "system": base_params["system"]
-        }
-        
-        # Get final response
-        final_response = self.client.messages.create(**final_params)
+            messages=messages,
+            system=system
+        )
         return final_response.content[0].text
