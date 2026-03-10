@@ -16,13 +16,36 @@ document.addEventListener('DOMContentLoaded', () => {
   totalCourses = document.getElementById('totalCourses');
   courseTitles = document.getElementById('courseTitles');
 
+  initTheme();
   setupEventListeners();
   createNewSession();
   loadCourseStats();
 });
 
+// Theme Management
+function initTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+}
+
+function toggleTheme() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    if (isLight) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+    }
+}
+
 // Event Listeners
 function setupEventListeners() {
+  // Theme toggle
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
   // Chat functionality
   sendButton.addEventListener('click', sendMessage);
   chatInput.addEventListener('keypress', (e) => {
