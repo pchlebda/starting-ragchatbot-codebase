@@ -29,8 +29,10 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Configure git credentials
+        run: git config --global url."https://x-access-token:${{ secrets.CLAUDE_GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.CLAUDE_GITHUB_TOKEN }}
